@@ -1,0 +1,45 @@
+//$ mkdir a
+//$ mkdir d
+//$ touch b.txt 14848514t
+//$ touch c.dat 8504156
+//$ cd a
+//$ mkdir e
+//$ touch f 29116
+//$ touch g 2557
+//$ touch h.lst 62596
+//$ cd e
+//$ touch i 584
+//$ cd ..
+//$ cd ..
+//$ cd d
+//$ touch j 4060174
+//$ touch d.log 8033020
+//$ touch d.ext 5626152
+//$ touch k 7214296
+//$ ls -l
+//$ finddirtotal 100000
+
+$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+$ ls
