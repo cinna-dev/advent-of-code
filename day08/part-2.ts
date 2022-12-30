@@ -148,10 +148,21 @@ class TreeGrid {
   }
 
   get viewDistanceTreesMap() {
-    return chalk.red(this._grid.map(row =>
+    return chalk.greenBright(this._grid.map(row =>
         row.map(tree => this.getViewDistanceScore(tree)).join(' ')
       ).join('\n')
     );
+  }
+
+  get viewDistanceTrees(): string[][] {
+    return this._grid.map(row =>
+      row.map(tree => this.getViewDistanceScore(tree))
+    );
+  }
+
+  get highestScenicScore(): number {
+    return this.viewDistanceTrees.flat().reduce((acc, sceneScore) =>
+      Number(sceneScore) > acc ? Number(sceneScore) : acc, 0);
   }
 
   getTree(coordinates: Coordinates): Tree | undefined {
@@ -240,14 +251,10 @@ class TreeGrid {
   getViewDistanceInDirection(tree: Tree, direction: 'top' | 'bottom' | 'left' | 'right') {
     let neighborTree: Tree | undefined = this.getNeighborTree(tree, direction);
     let index = 0;
-
-    //for each neighborTree -> increment if neighbor size is smaller than tree size
-
     while (neighborTree) {
-      // if (neighborTree) index++
       const isVisible: boolean = tree.size > neighborTree.size;
       if (isVisible) index++;
-      else return index;
+      else return ++index;
       neighborTree = this.getNeighborTree(neighborTree, direction);
     }
     return index;
@@ -269,8 +276,6 @@ class TreeGrid {
 
   getViewDistanceScore(tree: Tree): string {
     const viewDistances = this.getViewDistances(tree);
-    console.log(tree);
-    console.log(viewDistances);
     const { top, bottom, left, right } = viewDistances;
     return Utils.padNumWhitespace(top * bottom * left * right, 2);
   }
@@ -320,7 +325,5 @@ executeWithPrompt(__dirname, (text): void => {
 
   console.log(treeGrid.visibleTreesMap);
   console.log(treeGrid.viewDistanceTreesMap);
-  const tree = treeGrid.getTree([2, 1])!;
-  console.log(tree);
-  console.log(treeGrid.getViewDistanceInDirection(tree, 'top'));
+  console.log(treeGrid.highestScenicScore);
 });
