@@ -1,5 +1,5 @@
 import executeWithPrompt from "../lib/executeWithPrompt";
-import {inspect} from 'util'
+import {inspect} from 'util';
 
 // --- Day 7: No Space Left On Device ---
 // You can hear birds chirping and raindrops hitting leaves as the expedition proceeds.
@@ -144,14 +144,10 @@ import {inspect} from 'util'
 // What is the total size of that directory?
 
 // ---------------------------------------------------------------------------------------------------------------------
-class DiskSpace {
-  private static MAX = 70000000;
-  private static used: 0;
 
-  static get free(): number {
-    return this.MAX - this.used;
-  }
-};
+class DiskSpace {
+  static MAX = 70000000;
+}
 
 abstract class SystemEntity {
   protected constructor(
@@ -189,7 +185,11 @@ abstract class SystemEntity {
 
 class File extends SystemEntity {
   static isFile(entity: SystemEntity | null): entity is Directory {
-    return (!!entity) && ('_ext' in entity);
+    return (
+      !!entity
+    ) && (
+      '_ext' in entity
+    );
   }
 
   constructor(
@@ -209,7 +209,9 @@ class File extends SystemEntity {
   toString(config?: { size: boolean }): string {
     let end = '';
     end = config?.size ? ' ' + this._size : end;
-    return `${this.name}${this._ext ? ('.' + this._ext) : ''}${end}`;
+    return `${this.name}${this._ext ? (
+      '.' + this._ext
+    ) : ''}${end}`;
   }
 }
 
@@ -217,7 +219,11 @@ class File extends SystemEntity {
 
 class Directory extends SystemEntity {
   static isDirectory(entity: SystemEntity | null): entity is Directory {
-    return (!!entity) && ('children' in entity);
+    return (
+      !!entity
+    ) && (
+      'children' in entity
+    );
   }
 
   constructor(
@@ -244,6 +250,20 @@ class Directory extends SystemEntity {
   add(...children: SystemEntity[]): this {
     this._children.push(...children);
     return this;
+  }
+
+  remove(...systemEntities: SystemEntity[]): this {
+    for (const systemEntity of systemEntities) {
+      const index = this._children.indexOf(systemEntity);
+      if (index > -1) {
+        this._children.splice(index, 1);
+      }
+    }
+    return this;
+  }
+
+  destroy() {
+    this.parent?.remove(this);
   }
 
   toString(): string {
@@ -279,6 +299,14 @@ class FileSystem {
     this._currentDirectory = dir;
   }
 
+  get size(): number {
+    return this._root.size;
+  }
+
+  get freeSpace(): number {
+    return DiskSpace.MAX - this._root.size;
+  }
+
   createFile(name: string, ext: string | undefined, size: number): File {
     const file = new File(name, ext, size, this._currentDirectory);
     this._currentDirectory?.add(file);
@@ -291,7 +319,7 @@ class FileSystem {
   }
 
   toString() {
-    return this._root.children
+    return this._root.children;
   }
 }
 
@@ -302,12 +330,63 @@ interface Command {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+interface FilesSystemProcessor {
+  process(systemEntity: SystemEntity): void;
+}
+
+class EfficientDelete implements FilesSystemProcessor {
+  public disposableDir: Directory = new Directory(
+    'placeholder',
+    null,
+    [new File('null', undefined, DiskSpace.MAX, null)]
+  );
+
+  constructor(
+    private _fileSystem: FileSystem,
+    private _minFreeSpace: number
+  ) {}
+
+  process(systemEntity: SystemEntity): void {
+    if (Directory.isDirectory(systemEntity)
+      && systemEntity.size > Math.abs(this._fileSystem.freeSpace - this._minFreeSpace)
+      && systemEntity.size < this.disposableDir.size
+    ) {
+      this.disposableDir = systemEntity;
+    }
+  }
+
+  private dispose(): Directory {
+    this.disposableDir.destroy();
+    return this.disposableDir;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+class SystemTraversal {
+  traverse(fileSystem: FileSystem, filesSystemProcessor: FilesSystemProcessor): FilesSystemProcessor {
+
+    function recursiveSearch(entity: SystemEntity) {
+      if (Directory.isDirectory(entity)) {
+        entity.children.forEach(child => {
+          filesSystemProcessor.process(entity);
+          recursiveSearch(child);
+        });
+      }
+    }
+
+    recursiveSearch(fileSystem.root);
+
+    return filesSystemProcessor;
+  }
+}
 
 class Terminal {
   private readonly _fileSystem: FileSystem = FileSystem.instance;
 
   private readonly _commands = new Map<string, Command>([
-    ['cd', {
+    [
+      'cd', {
       execute(input: string, fileSystem: FileSystem): string {
         switch (input) {
           case '/': {
@@ -328,8 +407,10 @@ class Terminal {
           }
         }
       }
-    }],
-    ['ls', {
+    }
+    ],
+    [
+      'ls', {
       execute(input: string, fileSystem: FileSystem): string {
         const groups = input?.match(
           /(-(?<options>\w+))?\s?(?<file>\w+)?/
@@ -341,14 +422,18 @@ class Terminal {
           ?.map(c => c.toString({ size: groups?.options?.includes('l') }))
           ?.join('\n') ?? "";
       }
-    }],
-    ['mkdir', {
+    }
+    ],
+    [
+      'mkdir', {
       execute(input: string, fileSystem: FileSystem): string {
-        fileSystem.createDir(input)
+        fileSystem.createDir(input);
         return input;
       }
-    }],
-    ['touch', {
+    }
+    ],
+    [
+      'touch', {
       execute(input: string, fileSystem: FileSystem): string {
         const groups = input.match(
           /(?<name>\w+)(\.(?<ext>\w+))?(\s(?<size>\d+))?/
@@ -356,13 +441,22 @@ class Terminal {
 
         let file: File | null = null;
         if (groups) {
-          file = fileSystem.createFile(groups.name, groups.ext ?? '', +(groups.size ?? 0));
+          file =
+            fileSystem.createFile(
+              groups.name,
+              groups.ext ?? '',
+              +(
+                groups.size ?? 0
+              )
+            );
         }
 
         return file?.toString() ?? '';
       }
-    }],
-    ['finddirtotal', {
+    }
+    ],
+    [
+      'finddirtotal', {
       execute(input: string, fileSystem: FileSystem): string {
         const groups = input.match(/(?<maxSize>\w+)/)?.groups;
 
@@ -387,7 +481,19 @@ class Terminal {
 
         return dirs.reduce((size, dir) => size + dir.size, 0).toString();
       }
-    }],
+    }
+    ],
+    [
+      'delete-efficient', {
+      execute(input: string, fileSystem: FileSystem): string {
+        const systemTraversal = new SystemTraversal();
+        const efficientDelete
+          = systemTraversal.traverse(fileSystem, new EfficientDelete(fileSystem, +input),) as EfficientDelete;
+
+        return efficientDelete.disposableDir.toString() + " " + efficientDelete.disposableDir.size;
+      }
+    }
+    ]
   ]);
 
   private _output: string = '';
@@ -412,7 +518,7 @@ class Terminal {
 
       const groups: { [p: string]: string } | undefined =
         line
-          .match(/\$\s+(?<command>\w+)(\s+(?<rest>.+))?/)
+          .match(/\$\s+(?<command>[\w\-]+)(\s+(?<rest>.+))?/)
           ?.groups;
 
       if (groups) {
@@ -462,7 +568,7 @@ class Terminal {
   }
 
   private parse(text: string): string[] {
-    return text.split(/;|\n/g).filter(line => !line.includes('//'))
+    return text.split(/;|\n/g).filter(line => !line.includes('//'));
   }
 }
 
@@ -472,7 +578,6 @@ executeWithPrompt(__dirname, (text): void => {
   const terminal = new Terminal();
   terminal.input(text);
 
-  terminal.input('$ finddirtotal 100000');
+  terminal.input('$ delete-efficient 30000000');
   console.log(terminal.output);
-  // console.log(terminal.fileStruct);
 });
